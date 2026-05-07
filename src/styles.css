@@ -1,0 +1,129 @@
+:root {
+  --bg: rgba(26, 22, 46, 0.88);
+  --panel: rgba(41, 34, 70, 0.95);
+  --text: #f4f1ff;
+  --accent: #b18cff;
+  --user: #70e1f5;
+  --bot: #ffd166;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
+.pet-shell {
+  width: 100%;
+  height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  color: var(--text);
+  backdrop-filter: blur(6px);
+}
+
+.drag-bar {
+  height: 38px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  cursor: move;
+  user-select: none;
+}
+
+.drag-bar button {
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.avatar-wrap {
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--panel);
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.mood {
+  font-size: 13px;
+  color: #ddd4ff;
+}
+
+.chat-log {
+  flex: 1;
+  margin: 0 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  padding: 10px;
+  overflow-y: auto;
+}
+
+.msg {
+  margin-bottom: 8px;
+  line-height: 1.35;
+  font-size: 14px;
+}
+
+.msg strong {
+  font-weight: 600;
+}
+
+.msg.user strong {
+  color: var(--user);
+}
+
+.msg.bot strong {
+  color: var(--bot);
+}
+
+.chat-form {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+}
+
+.chat-form input {
+  flex: 1;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 8px 12px;
+  outline: none;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.chat-form button {
+  border-radius: 999px;
+  border: none;
+  background: var(--accent);
+  color: white;
+  padding: 8px 14px;
+  cursor: pointer;
+}

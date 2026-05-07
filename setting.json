@@ -1,0 +1,8 @@
+{
+  "chatProvider": "deepseek",
+  "chatBaseUrl": "https://api.deepseek.com/v1",
+  "chatModel": "deepseek-chat",
+  "screenMode": "ocr",
+  "visionBaseUrl": "https://api.openai.com/v1",
+  "visionModel": "gpt-4o-mini"
+}

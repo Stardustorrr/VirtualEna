@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Virtual Ena MVP</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="pet-shell" class="pet-shell">
+      <div id="drag-bar" class="drag-bar">
+        <span>Harumi Ena (MVP)</span>
+        <button id="close-btn" title="退出">×</button>
+      </div>
+
+      <div class="avatar-wrap">
+        <div id="avatar" class="avatar">😊</div>
+        <div id="mood" class="mood">状态：在线</div>
+      </div>
+
+      <div id="chat-log" class="chat-log"></div>
+
+      <form id="chat-form" class="chat-form">
+        <input id="chat-input" type="text" placeholder="和Ena说点什么..." maxlength="200" required />
+        <button type="submit">发送</button>
+      </form>
+    </div>
+
+    <script src="renderer.js"></script>
+  </body>
+</html>

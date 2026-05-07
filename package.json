@@ -1,0 +1,13 @@
+{
+  "name": "virtual-ena-mvp",
+  "version": "0.1.0",
+  "description": "Harumi Ena desktop pet MVP (always-on-top + basic chat)",
+  "main": "main.js",
+  "scripts": {
+    "start": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\desktop-pet.ps1",
+    "check": "node --check main.js && node --check preload.js && node --check src/renderer.js"
+  },
+  "devDependencies": {
+    "electron": "^31.7.7"
+  }
+}
