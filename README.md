@@ -12,6 +12,20 @@ npm run start
 
 `npm run start` launches `desktop-pet.ps1` directly.
 
+## Local Embedding Prototype
+
+Use `tools/embedding_memory_probe.py` to test local embedding generation and a
+small short-term-memory retrieval score.
+
+```powershell
+.\.venv\Scripts\pip.exe install -r tools\requirements-embedding.txt
+$env:HF_ENDPOINT = "https://hf-mirror.com"
+.\.venv\Scripts\python.exe tools\embedding_memory_probe.py "我摸了摸头"
+```
+
+The script uses `BAAI/bge-small-zh-v1.5`, prints the embedding dimension, and
+ranks sample memories by a simple activation score.
+
 ## Project Structure
 
 ```text
@@ -72,3 +86,64 @@ Choose the normal chat model in `setting.json`:
 
 - `ocr`: use local Windows OCR.
 - `vision`: send a screenshot to a vision-capable model.
+
+## Ena Dialogue State
+
+The main app stores dialogue state in `%APPDATA%\VirtualEna\memory.json`.
+Existing memory files are migrated automatically. The current structure includes:
+
+- `emotion`: `valence`, `arousal`, and `attachment`, each clamped to `[-1, 1]`.
+- `shortTermMemories`: temporary memories with `content`, `t0`, `strength`,
+  `emotion`, `embedding`, `blur`, and `clarity`.
+- `needs`, `behavior`, and `affection`: reserved structures for later systems.
+
+The model receives an internal state prompt containing Ena's emotion text and the
+selected working memories, then returns JSON:
+
+```json
+{
+  "reply": "visible reply",
+  "emotion_delta": { "valence": 0.05, "arousal": 0.0, "attachment": 0.02 },
+  "memory_importance": 0.6
+}
+```
+
+The app shows only `reply`, applies `emotion_delta`, and stores the conversation
+as a temporary memory.
+
+### Tunable Parameters
+
+All unclear formula parameters live under `enaSystem` in `setting.json`.
+
+- `emotion.decayToNeutralPerTurn`: how quickly emotion drifts toward neutral each turn.
+- `emotion.deltaScale`: scales model-provided `emotion_delta` before applying it.
+- `emotion.maxDeltaPerTurn`: clamps one-turn emotional changes.
+- `memory.forgettingA`: `A` in `gamma = A * (1 - |e|)`. Higher means faster forgetting.
+- `memory.deleteThreshold`: memories below this strength are removed.
+- `memory.recallBoost`: `r` in `s_new = min(1, s_old + r * activation)`.
+- `memory.blurK`: `k` in the clarity/blur sigmoid. Higher makes blur change more sharply.
+- `memory.blurB`: `B` in `T = B / (1 - |e|)`. Higher delays blur.
+- `memory.activationSemanticWeight`: `a_1` in activation.
+- `memory.activationStrengthWeight`: `a_2` in activation.
+- `memory.workMemoryThreshold`: `w`; selected memories must exceed this activation.
+- `memory.workMemoryTopK`: maximum working memories sent to the model.
+- `memory.initialStrengthBase`: base strength for new dialogue memories.
+- `memory.initialStrengthEmotionWeight`: extra initial strength from emotional intensity.
+- `memory.maxShortTermMemories`: cap for temporary memories.
+
+### Debugging
+
+Use `%APPDATA%\VirtualEna\memory.json` to inspect the live state after each chat
+turn. For faster tuning, edit `setting.json`, restart the app, and try the same
+few prompts repeatedly.
+
+Good first tuning moves:
+
+- Ena forgets too quickly: lower `memory.forgettingA` or `memory.deleteThreshold`.
+- Old memories appear too often: raise `memory.workMemoryThreshold`.
+- Memories feel too fuzzy too soon: raise `memory.blurB` or lower `memory.blurK`.
+- Emotion swings too hard: lower `emotion.deltaScale` or `emotion.maxDeltaPerTurn`.
+- Emotion feels flat: raise `emotion.deltaScale` slightly.
+
+Request diagnostics are written to `%APPDATA%\VirtualEna\debug.log`, including
+message counts and prompt sizes.

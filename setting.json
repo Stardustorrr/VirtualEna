@@ -1,8 +1,45 @@
-{
-  "chatProvider": "deepseek",
-  "chatBaseUrl": "https://api.deepseek.com/v1",
-  "chatModel": "deepseek-chat",
-  "screenMode": "ocr",
-  "visionBaseUrl": "https://api.openai.com/v1",
-  "visionModel": "gpt-4o-mini"
+﻿{
+    "chatProvider":  "deepseek",
+    "chatBaseUrl":  "https://api.deepseek.com/v1",
+    "chatModel":  "deepseek-chat",
+    "chatTimeoutSec":  120,
+    "screenMode":  "ocr",
+    "visionProvider":  "openai",
+    "visionBaseUrl":  "https://api.openai.com/v1",
+    "visionModel":  "gpt-4o",
+    "visionTimeoutSec":  120,
+    "enaSystem":  {
+                      "emotion":  {
+                                      "decayToNeutralPerTurn":  0.04,
+                                      "deltaScale":  0.35,
+                                      "maxDeltaPerTurn":  0.35
+                                  },
+                      "memory":  {
+                                     "forgettingA":  0.18,
+                                     "deleteThreshold":  0.1,
+                                     "recallBoost":  0.25,
+                                     "recallClarityBoost":  0.25,
+                                     "blurK":  1.2,
+                                     "blurB":  2.0,
+                                     "timeUnitSeconds":  600,
+                                     "embeddingEnabled":  true,
+                                     "embeddingModel":  "BAAI/bge-small-zh-v1.5",
+                                     "embeddingPython":  "",
+                                     "embeddingTimeoutSec":  3,
+                                     "embeddingStartupTimeoutSec":  90,
+                                     "activationSemanticWeight":  0.55,
+                                     "activationStrengthWeight":  0.25,
+                                     "workMemoryThreshold":  0.70,
+                                     "workMemoryTopK":  8,
+                                     "initialStrengthBase":  0.55,
+                                     "initialStrengthEmotionWeight":  0.25,
+                                     "maxShortTermMemories":  200
+                                 },
+                      "debug":  {
+                                    "enabled":  true,
+                                    "maxShortTermItems":  12,
+                                    "maxWorkingCandidates":  12,
+                                    "refreshMs":  1000
+                                }
+                  }
 }

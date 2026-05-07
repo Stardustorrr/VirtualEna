@@ -48,17 +48,17 @@ function ConvertTo-ChatMessages([object]$memory, [string]$inputText) {
 $settings = Load-Settings
 $memory = Load-Memory
 
-$provider = if ($settings.provider) { [string]$settings.provider } else { 'deepseek' }
-$baseUrl = if ($settings.baseUrl) { [string]$settings.baseUrl.TrimEnd('/') } else { 'https://api.deepseek.com/v1' }
-$model = if ($settings.model) { [string]$settings.model } else { 'deepseek-chat' }
+$provider = if ($settings.chatProvider) { [string]$settings.chatProvider } elseif ($settings.provider) { [string]$settings.provider } else { 'deepseek' }
+$baseUrl = if ($settings.chatBaseUrl) { [string]$settings.chatBaseUrl.TrimEnd('/') } elseif ($settings.baseUrl) { [string]$settings.baseUrl.TrimEnd('/') } elseif ($provider -eq 'deepseek') { 'https://api.deepseek.com/v1' } else { 'https://api.openai.com/v1' }
+$model = if ($settings.chatModel) { [string]$settings.chatModel } elseif ($settings.model) { [string]$settings.model } elseif ($provider -eq 'deepseek') { 'deepseek-chat' } else { 'gpt-4o-mini' }
 $apiKey = if ($provider -eq 'deepseek') {
-    if ($env:DEEPSEEK_API_KEY) { [string]$env:DEEPSEEK_API_KEY } else { [string]$env:OPENAI_API_KEY }
+    [string]$env:DEEPSEEK_API_KEY
 } else {
-    if ($env:OPENAI_API_KEY) { [string]$env:OPENAI_API_KEY } else { [string]$env:DEEPSEEK_API_KEY }
+    [string]$env:OPENAI_API_KEY
 }
 
 if (-not $apiKey) {
-    throw 'Missing API key. Set DEEPSEEK_API_KEY or OPENAI_API_KEY in your environment.'
+    throw "Missing API key for provider '$provider'."
 }
 
 $inputText = '你好'
