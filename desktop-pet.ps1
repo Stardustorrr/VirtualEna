@@ -12,11 +12,62 @@ try {
 } catch {
 }
 
+$dotenvPath = Join-Path $PSScriptRoot '.env'
+
+function Import-DotEnv {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path $Path)) {
+        return
+    }
+
+    foreach ($rawLine in Get-Content $Path -Encoding UTF8) {
+        $line = $rawLine.Trim()
+        if (-not $line -or $line.StartsWith('#')) {
+            continue
+        }
+
+        if ($line.StartsWith('export ')) {
+            $line = $line.Substring(7).Trim()
+        }
+
+        $separatorIndex = $line.IndexOf('=')
+        if ($separatorIndex -lt 1) {
+            continue
+        }
+
+        $name = $line.Substring(0, $separatorIndex).Trim()
+        if (-not $name) {
+            continue
+        }
+
+        if (-not (Test-Path ("Env:{0}" -f $name))) {
+            $value = $line.Substring($separatorIndex + 1)
+            if ($value.Length -ge 2) {
+                $first = $value.Substring(0, 1)
+                $last = $value.Substring($value.Length - 1, 1)
+                if (($first -eq '"' -and $last -eq '"') -or ($first -eq "'" -and $last -eq "'")) {
+                    $value = $value.Substring(1, $value.Length - 2)
+                }
+            }
+
+            Set-Item -Path ("Env:{0}" -f $name) -Value $value
+        }
+    }
+}
+
+Import-DotEnv -Path $dotenvPath
+
 $stateDir = Join-Path $env:APPDATA 'VirtualEna'
 $memoryFile = Join-Path $stateDir 'memory.json'
 $settingsFile = Join-Path $stateDir 'settings.json'
 $debugLogFile = Join-Path $stateDir 'debug.log'
 $ragCorpusFile = Join-Path $PSScriptRoot 'data\rag-corpus.json'
+$storyCorpusFile = Join-Path $PSScriptRoot 'data\story-corpus.json'
+$profileFile = Join-Path $PSScriptRoot 'data\ena-profile.json'
 $localSettingsFile = Join-Path $PSScriptRoot 'setting.json'
 $localSettingsFileAlt = Join-Path $PSScriptRoot 'settings.json'
 $avatarPath = $null
@@ -69,7 +120,42 @@ function Load-RagCorpus {
     return @()
 }
 
+function Load-StoryCorpus {
+    if (-not (Test-Path $storyCorpusFile)) {
+        return @()
+    }
+
+    try {
+        $raw = Get-Content $storyCorpusFile -Raw -Encoding UTF8
+        $corpus = $raw | ConvertFrom-Json
+        if ($corpus) {
+            return @($corpus)
+        }
+    } catch {
+        Write-DebugLog ("Failed to load story corpus: {0}" -f $_.Exception.Message)
+    }
+
+    return @()
+}
+
+function Load-EnaProfile {
+    if (-not (Test-Path $profileFile)) {
+        return $null
+    }
+
+    try {
+        $raw = Get-Content $profileFile -Raw -Encoding UTF8
+        return $raw | ConvertFrom-Json
+    } catch {
+        Write-DebugLog ("Failed to load Ena profile: {0}" -f $_.Exception.Message)
+    }
+
+    return $null
+}
+
 $script:ragCorpus = Load-RagCorpus
+$script:storyCorpus = Load-StoryCorpus
+$script:enaProfile = Load-EnaProfile
 $script:lastScreenContext = ''
 
 function Mask-Secret([string]$value) {
@@ -196,20 +282,36 @@ function Get-RagExpandedQuery([string]$inputText) {
     return ($parts -join ' ')
 }
 
-function Get-RagContext([string]$inputText) {
-    if (-not $script:ragCorpus -or $script:ragCorpus.Count -eq 0) {
-        return [pscustomobject]@{ Text = ''; Count = 0; Sources = @() }
+function Get-StoryExpandedQuery([string]$inputText) {
+    $normalized = Normalize-Text $inputText
+    $parts = New-Object System.Collections.Generic.List[string]
+    $parts.Add($normalized)
+
+    if ($normalized -match '故事|剧情|以前|过去|经历|人设|设定|为什么|关系|成员|乐队|音乐|吉他|live|演出|舞台|伙伴') {
+        $parts.Add('故事 剧情 经历 人设 设定 关系 成员 乐队 音乐 吉他 演出 舞台 伙伴')
     }
 
-    $query = Normalize-RagText (Get-RagExpandedQuery $inputText)
+    if ($normalized -match '累|难受|不顺|倒霉|烦|低落|不想') {
+        $parts.Add('低落 倒霉 不顺 自嘲 吐槽 安慰')
+    }
+
+    return ($parts -join ' ')
+}
+
+function Get-ScoredCorpusContext([object[]]$corpus, [string]$inputText, [string]$expandedQuery, [int]$limit) {
+    if (-not $corpus -or $corpus.Count -eq 0) {
+        return @()
+    }
+
+    $query = Normalize-RagText $expandedQuery
     if (-not $query) {
-        return [pscustomobject]@{ Text = ''; Count = 0; Sources = @() }
+        return @()
     }
 
     $queryNGrams = Get-RagNGrams $query 2
     $scored = New-Object System.Collections.Generic.List[object]
 
-    foreach ($entry in $script:ragCorpus) {
+    foreach ($entry in $corpus) {
         $searchText = Normalize-RagText ([string]$entry.search_text)
         if (-not $searchText) {
             continue
@@ -231,7 +333,15 @@ function Get-RagContext([string]$inputText) {
         }
     }
 
-    $top = $scored | Sort-Object Score -Descending | Select-Object -First 3
+    return @($scored | Sort-Object Score -Descending | Select-Object -First $limit)
+}
+
+function Get-RagContext([string]$inputText) {
+    if (-not $script:ragCorpus -or $script:ragCorpus.Count -eq 0) {
+        return [pscustomobject]@{ Text = ''; Count = 0; Sources = @() }
+    }
+
+    $top = Get-ScoredCorpusContext @($script:ragCorpus) $inputText (Get-RagExpandedQuery $inputText) 3
     if (-not $top) {
         return [pscustomobject]@{ Text = ''; Count = 0; Sources = @() }
     }
@@ -336,6 +446,47 @@ function Get-ChatSettings {
     }
 }
 
+function Get-StoryContext([string]$inputText) {
+    if (-not $script:storyCorpus -or $script:storyCorpus.Count -eq 0) {
+        return [pscustomobject]@{ Text = ''; Count = 0; Sources = @() }
+    }
+
+    $top = Get-ScoredCorpusContext @($script:storyCorpus) $inputText (Get-StoryExpandedQuery $inputText) 3
+    if (-not $top) {
+        return [pscustomobject]@{ Text = ''; Count = 0; Sources = @() }
+    }
+
+    $lines = New-Object System.Collections.Generic.List[string]
+    $lines.Add('故事与人设参考（用于事实背景和性格理解，不要逐字照抄原文）:')
+    $sources = New-Object System.Collections.Generic.List[string]
+    $index = 1
+
+    foreach ($item in $top) {
+        $entry = $item.Entry
+        $summary = if ($entry.summary_zh) { [string]$entry.summary_zh } else { '' }
+        $impact = if ($entry.character_impact) { [string]$entry.character_impact } else { '' }
+        $lines.Add(("{0}. 来源：{1} / {2}" -f $index, $entry.source_file, $entry.scene_label))
+        $lines.Add(("   主题：{0}" -f $entry.topic))
+        if ($summary -and -not $summary.StartsWith('TODO:')) {
+            $lines.Add(("   故事摘要：{0}" -f $summary))
+        }
+        if ($impact -and -not $impact.StartsWith('TODO:')) {
+            $lines.Add(("   对恵凪的影响：{0}" -f $impact))
+        }
+        if ($entry.keywords_zh) {
+            $lines.Add(("   关键词：{0}" -f (($entry.keywords_zh | Select-Object -First 8) -join '、')))
+        }
+        $sources.Add([string]$entry.source_file)
+        $index += 1
+    }
+
+    return [pscustomobject]@{
+        Text = $lines -join "`n"
+        Count = $top.Count
+        Sources = @($sources)
+    }
+}
+
 function Get-VisionSettings {
     $settings = Load-Settings
 
@@ -399,6 +550,66 @@ function Get-ScreenReadMode {
     return 'vision'
 }
 
+function Format-ListForPrompt([object]$items, [int]$limit = 8) {
+    if (-not $items) {
+        return ''
+    }
+
+    $lines = New-Object System.Collections.Generic.List[string]
+    foreach ($item in @($items | Select-Object -First $limit)) {
+        if ($item) {
+            $lines.Add(("- {0}" -f [string]$item))
+        }
+    }
+
+    return ($lines -join "`n")
+}
+
+function Format-ProfileForPrompt {
+    if (-not $script:enaProfile) {
+        return ''
+    }
+
+    try {
+        $profile = $script:enaProfile
+        $lines = New-Object System.Collections.Generic.List[string]
+        $lines.Add('稳定人设资料（优先级高于临时 RAG；用于保持角色一致性）:')
+        if ($profile.identity) {
+            $identity = $profile.identity
+            $lines.Add(("姓名：{0} / {1}" -f $identity.name_zh, $identity.name_ja))
+            if ($identity.role) { $lines.Add(("身份：{0}" -f $identity.role)) }
+            if ($identity.source_work) { $lines.Add(("作品来源：{0}" -f $identity.source_work)) }
+        }
+
+        $personality = Format-ListForPrompt $profile.personality 10
+        if ($personality) {
+            $lines.Add("性格：`n$personality")
+        }
+
+        $speech = Format-ListForPrompt $profile.speech_style 10
+        if ($speech) {
+            $lines.Add("说话方式：`n$speech")
+        }
+
+        if ($profile.relationships) {
+            $lines.Add('关系：')
+            foreach ($rel in @($profile.relationships | Select-Object -First 8)) {
+                $lines.Add(("- {0}: {1}。{2}" -f $rel.name, $rel.relation, $rel.notes))
+            }
+        }
+
+        $boundaries = Format-ListForPrompt $profile.boundaries 10
+        if ($boundaries) {
+            $lines.Add("边界：`n$boundaries")
+        }
+
+        return ($lines -join "`n")
+    } catch {
+        Write-DebugLog ("Failed to format Ena profile: {0}" -f $_.Exception.Message)
+        return ''
+    }
+}
+
 function Get-SystemPrompt {
     $base = @'
 你是 Harumi Ena，但在对话里你首先是一个会认真接话、会关心人的朋友。
@@ -424,6 +635,11 @@ function Get-SystemPrompt {
 - "听起来你有点累了，要不要先歇一下？我陪你慢慢聊。"
 - "当然可以，我们慢慢熟起来就好。"
 '@
+
+    $profilePrompt = Format-ProfileForPrompt
+    if (-not [string]::IsNullOrWhiteSpace($profilePrompt)) {
+        $base += "`n`n$profilePrompt"
+    }
 
     $fewshotCandidates = @(
         (Join-Path $PSScriptRoot 'data\fewshot.friend.examples.json'),
@@ -476,6 +692,12 @@ function ConvertTo-ChatMessages([object]$memory, [string]$inputText) {
     if ($ragContext.Count -gt 0) {
         Write-DebugLog ("RAG matches={0} sources={1}" -f $ragContext.Count, ($ragContext.Sources -join ','))
         $messages.Add([pscustomobject]@{ role = 'system'; content = $ragContext.Text })
+    }
+
+    $storyContext = Get-StoryContext $inputText
+    if ($storyContext.Count -gt 0) {
+        Write-DebugLog ("Story matches={0} sources={1}" -f $storyContext.Count, ($storyContext.Sources -join ','))
+        $messages.Add([pscustomobject]@{ role = 'system'; content = $storyContext.Text })
     }
 
     if (-not [string]::IsNullOrWhiteSpace($script:lastScreenContext)) {

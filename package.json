@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\desktop-pet.ps1",
-    "check": "node --check main.js && node --check preload.js && node --check src/renderer.js"
+    "check": "node --check main.js && node --check preload.js && node --check src/renderer.js && node --check training/build-character-data.mjs",
+    "build:character": "node training/build-character-data.mjs"
   },
   "devDependencies": {
     "electron": "^31.7.7"
