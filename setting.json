@@ -12,13 +12,55 @@
                       "emotion":  {
                                       "decayToNeutralPerTurn":  0.04,
                                       "deltaScale":  0.35,
-                                      "maxDeltaPerTurn":  0.35
+                                      "maxDeltaPerTurn":  0.35,
+                                      "eventVectors":  {
+                                                           "warm_greeting":  {
+                                                                                 "valence":  0.05,
+                                                                                 "arousal":  0.01,
+                                                                                 "attachment":  0.02
+                                                                             },
+                                                           "personal_disclosure":  {
+                                                                                       "valence":  0.04,
+                                                                                       "arousal":  0.0,
+                                                                                       "attachment":  0.05
+                                                                                   },
+                                                           "user_distress":  {
+                                                                                 "valence":  -0.06,
+                                                                                 "arousal":  0.04,
+                                                                                 "attachment":  0.08
+                                                                             },
+                                                           "praise_or_affection":  {
+                                                                                       "valence":  0.07,
+                                                                                       "arousal":  0.04,
+                                                                                       "attachment":  0.05
+                                                                                   },
+                                                           "pressure_or_demand":  {
+                                                                                       "valence":  -0.06,
+                                                                                       "arousal":  0.09,
+                                                                                       "attachment":  -0.05
+                                                                                   },
+                                                           "conflict_or_rejection":  {
+                                                                                          "valence":  -0.1,
+                                                                                          "arousal":  0.07,
+                                                                                          "attachment":  -0.08
+                                                                                      },
+                                                           "shared_interest":  {
+                                                                                   "valence":  0.05,
+                                                                                   "arousal":  0.02,
+                                                                                   "attachment":  0.03
+                                                                               },
+                                                           "ordinary_chat":  {
+                                                                                 "valence":  0.02,
+                                                                                 "arousal":  0.0,
+                                                                                 "attachment":  0.01
+                                                                             }
+                                                       }
                                   },
                       "memory":  {
                                      "forgettingA":  0.18,
+                                     "recallGammaWeight":  0.15,
                                      "deleteThreshold":  0.1,
                                      "recallBoost":  0.25,
-                                     "recallClarityBoost":  0.25,
                                      "blurK":  1.2,
                                      "blurB":  2.0,
                                      "timeUnitSeconds":  600,
@@ -30,7 +72,7 @@
                                      "activationSemanticWeight":  0.55,
                                      "activationStrengthWeight":  0.25,
                                      "workMemoryThreshold":  0.70,
-                                     "workMemoryTopK":  8,
+                                     "workMemoryTopK":  6,
                                      "initialStrengthBase":  0.55,
                                      "initialStrengthEmotionWeight":  0.25,
                                      "maxShortTermMemories":  200
